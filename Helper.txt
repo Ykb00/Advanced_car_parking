@@ -1,0 +1,37 @@
+# Keyboard Controls for Parking Detection System
+
+## Main Controls
+
+| Key | Function |
+|-----|----------|
+| `S` | Save the currently drawn polygon as a parking space and store it as a template for future use |
+| `R` | Remove the last added parking space polygon |
+| `C` | Clear all parking spaces (removes all polygons) |
+| `A` | Auto-detect parking spaces using the YOLO model to identify vehicles |
+| `Q` | Quit the application |
+
+## Mode Switching
+
+| Key | Mode |
+|-----|------|
+| `D` | Switch to **Draw Polygon mode** (default) - allows drawing new parking spaces |
+| `X` | Switch to **Remove Box mode** - click inside a parking space to remove it |
+| `B` | Switch to **Add Box mode** - adds new parking spaces using the template shape |
+
+## How to Use the Modes
+
+1. **Draw Polygon mode (D)**: 
+   - Click to place points of the polygon
+   - Press `S` to save the polygon when finished
+
+2. **Remove Box mode (X)**:
+   - Click inside any parking space polygon to remove it
+
+3. **Add Box mode (B)**:
+   - First create at least one polygon to use as a template
+   - Then switch to Add Box mode
+   - Click anywhere to place a new parking space with the same shape as the template
+
+## Streaming Controls
+
+The system automatically streams the processed video to the server for web viewing.

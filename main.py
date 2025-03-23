@@ -1,3 +1,5 @@
+#original code
+
 import cv2
 import numpy as np
 from functions import find_polygon_center, save_object, load_object, is_point_in_polygon, get_label_name
@@ -98,7 +100,7 @@ def auto_detect_parking_spaces(frame):
 # Create a black image, a window and bind the function to window
 # cap = cv2.VideoCapture("Media/carPark.mp4")
 # cap = cv2.VideoCapture("Media/3858833-hd_1920_1080_24fps.mp4")
-cap = cv2.VideoCapture("Media/5587732-hd_1920_1080_30fps.mp4")
+cap = cv2.VideoCapture("Media/video4.mp4")
 cv2.namedWindow("image")
 cv2.setMouseCallback("image", draw_polygon)
 

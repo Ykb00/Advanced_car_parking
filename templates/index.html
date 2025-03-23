@@ -1,0 +1,249 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parking Space Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .video-container {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .video-feed {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .stat-box {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px;
+            min-width: 200px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .total {
+            color: #007bff;
+        }
+        .free {
+            color: #28a745;
+        }
+        .occupied {
+            color: #dc3545;
+        }
+        .rate {
+            color: #6610f2;
+        }
+        .controls {
+            text-align: center;
+            margin-top: 15px;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #6c757d;
+        }
+        #connection-status {
+            text-align: center;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        .connected {
+            color: green;
+        }
+        .disconnected {
+            color: red;
+        }
+        @media (max-width: 768px) {
+            .stat-box {
+                min-width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Parking Space Monitor</h1>
+        
+        <div class="video-container">
+            <img id="video-feed" src="{{ url_for('video_feed') }}" class="video-feed" alt="Parking Video Feed" onerror="handleVideoError()">
+            <div id="connection-status" class="connected">Connected to Server</div>
+            <div id="stream-status" class="disconnected">Connecting to Stream...</div>
+        </div>
+        
+        <div class="stats-container">
+            <div class="stat-box">
+                <h3>Total Spaces</h3>
+                <div class="stat-value total" id="total-spaces">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Free Spaces</h3>
+                <div class="stat-value free" id="free-spaces">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Occupied Spaces</h3>
+                <div class="stat-value occupied" id="occupied-spaces">-</div>
+            </div>
+            <div class="stat-box">
+                <h3>Occupancy Rate</h3>
+                <div class="stat-value rate" id="occupancy-rate">-</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="refresh-stream" onclick="refreshStream()">Refresh Stream</button>
+        </div>
+        
+        <footer>
+            Real-time Parking Detection System
+        </footer>
+    </div>
+
+    <script>
+        // Variables to track connection status
+        let connectionLost = false;
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        // Function to update the statistics
+        function updateStats() {
+            fetch('/stats')
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Network response was not ok');
+                })
+                .then(data => {
+                    document.getElementById('total-spaces').textContent = data.total_spaces;
+                    document.getElementById('free-spaces').textContent = data.free_spaces;
+                    document.getElementById('occupied-spaces').textContent = data.occupied_spaces;
+                    document.getElementById('occupancy-rate').textContent = data.occupancy_rate + '%';
+                    
+                    // Reset connection status if it was previously lost
+                    if (connectionLost) {
+                        connectionLost = false;
+                        updateConnectionStatus(true);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching stats:', error);
+                    connectionLost = true;
+                    updateConnectionStatus(false);
+                });
+                
+            // Check connection status to main.py stream
+            fetch('/connection_status')
+                .then(response => response.json())
+                .then(data => {
+                    const streamStatusElement = document.getElementById('stream-status');
+                    if (data.connected) {
+                        streamStatusElement.textContent = 'Connected to Stream';
+                        streamStatusElement.className = 'connected';
+                    } else {
+                        streamStatusElement.textContent = 'Not Connected to Stream';
+                        streamStatusElement.className = 'disconnected';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking stream connection:', error);
+                });
+        }
+        
+        // Function to handle video errors
+        function handleVideoError() {
+            retryCount++;
+            if (retryCount <= maxRetries) {
+                console.log(`Stream error, attempting reconnect (${retryCount}/${maxRetries})...`);
+                setTimeout(refreshStream, 2000);
+            } else {
+                updateConnectionStatus(false);
+                console.error('Failed to reconnect to video stream after multiple attempts');
+            }
+        }
+        
+        // Function to refresh the video stream
+        function refreshStream() {
+            const videoFeed = document.getElementById('video-feed');
+            videoFeed.src = "{{ url_for('video_feed') }}?" + new Date().getTime(); // Add cache-busting parameter
+            retryCount = 0;
+            updateConnectionStatus(true);
+        }
+        
+        // Function to update connection status display
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connection-status');
+            if (connected) {
+                statusElement.textContent = 'Connected to Server';
+                statusElement.className = 'connected';
+            } else {
+                statusElement.textContent = 'Disconnected - Click Refresh Stream';
+                statusElement.className = 'disconnected';
+            }
+        }
+
+        // Update stats initially and then every 1.5 seconds
+        updateStats();
+        setInterval(updateStats, 1500);
+        
+        // Add event listener to check if page is visible and pause/resume accordingly
+        document.addEventListener('visibilitychange', function() {
+            const videoFeed = document.getElementById('video-feed');
+            if (document.hidden) {
+                // Page is hidden, pause video stream to save resources
+                videoFeed.style.display = 'none';
+            } else {
+                // Page is visible again, resume video stream
+                videoFeed.style.display = 'block';
+                refreshStream(); // Reconnect the stream
+            }
+        });
+    </script>
+</body>
+</html>
+        
